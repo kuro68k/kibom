@@ -3,6 +3,7 @@
 
 Status: **Beta**
 Licence: GPL v3
+
 Language: C#, Visual Studio 2013
 
 This application uses PDFSharp and MigraDoc.

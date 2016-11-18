@@ -1,0 +1,59 @@
+Group: A (1)
+	A1, A2, A3	TEST_1P	no part	
+
+Group: BT (1)
+(Batteries)
+	BT1	3.6V Lithium	AA PCB mount	
+
+Group: C (8)
+(Capacitors, X7R/X5R, 16V unless otherwise stated)
+	C14, C16	12p	0603	
+	 C2,C3	22p	0603	
+	C17	1n	0603	
+	C15	22n	0603	
+	 C6,C7, C8, C10, C20	100n	0603	
+	C18	470n	0603	
+	 C1, C4, C5,C9, C11, C12, C13	2u2	0603	
+	C19	68u	1206	
+
+Group: J (2)
+(Connectors)
+	J2	AVR-PDI-6A	3x2 2.54mm SMD	
+	J1	CONN_01X02	no part	
+
+Group: L (1)
+(Inductors)
+	L1, L2	0.8R 200mA	0603	
+
+Group: Q (1)
+(Transistors)
+	 Q1,Q2	BSS84	SOT-23	
+
+Group: R (8)
+(Resistors, 1% unless otherwise stated)
+	R8, R9	N/A	0603	
+	 R13, R14, R16,R19	0R	0603	
+	 R6,R7	33R	0603	
+	R4, R5	1k	0603	
+	 R1,R2, R10, R11	10k	0603	0.1%
+	R12	47k	0603	
+	 R3,R15, R17	100k	0603	
+	R18	170k	0603	
+
+Group: TP (1)
+	 TP1, TP2, TP3, TP4, TP5,TP6, TP7, TP8	TEST_1P	no part	
+
+Group: U (6)
+(Integrated Circuits)
+	U2	ATXMEGA8E5-A	TQFP-32	
+	U1	TPS78228	SOT-23	
+	U3	LM4040 2.048V	SOT-23	
+	U4	Si473X-D60	QFN-20	
+	U5	STWD100NYWY3F	SOT-23	
+	U6	TPL5010	SOT-23	
+
+Group: Y (2)
+(Crystals)
+	Y1	16MHz		
+	Y2	32768Hz		
+
