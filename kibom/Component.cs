@@ -88,7 +88,11 @@ namespace kibom
 			double nv;	// nominal value
 			string ns;	// numeric string
 			string si;	// SI units
-			ns = value.Substring(0, value.IndexOfAny("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".ToCharArray()));
+			int idx = value.IndexOfAny("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".ToCharArray());
+			if (idx != -1)
+				ns = value.Substring(0, idx);
+			else
+				ns = "";
 			si = value.Trim("0123456789".ToCharArray());
 			
 			if (!double.TryParse(ns, out nv))
@@ -136,19 +140,6 @@ namespace kibom
 				(si == "Tv") ||
 				(si == "Th"))
 				nv *= 10e12;
-
-			//if (value.Contains("m"))
-			//	nv /= 1000;
-			//else if (value.Contains("n"))
-			//	nv /= 10e-6;
-			//else if (value.Contains("p"))
-			//	nv /= 10e-9;
-			//else if (value.Contains("k") || value.Contains("K"))
-			//	nv *= 1000;
-			//else if (value.Contains("M"))
-			//	nv *= 10e6;
-			//else if (value.Contains("G"))
-			//	nv *= 10e9;
 			return nv;
 		}
 

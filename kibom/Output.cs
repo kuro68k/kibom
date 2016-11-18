@@ -20,20 +20,41 @@ namespace kibom
 			{
 				foreach (DesignatorGroup g in groups)
 				{
-					sw.WriteLine("Group: " + g.designator + " (" + g.comp_list.Count.ToString() + ")");
+					// check for groups that are entire "no part"
+					bool all_no_part = true;
+					foreach (Component c in g.comp_list)
+					{
+						if (c.footprint_normalized != "no part")
+							all_no_part = false;
+					}
+					if (all_no_part)
+						continue;
+
+					// header
+					//sw.WriteLine("Group: " + g.designator + " (" + g.comp_list.Count.ToString() + ")");
 					DefaultComp def = Component.FindDefaultComp(g.designator);
 					if (def != null)
 					{
-						sw.Write("(" + def.long_name);
+						sw.Write(def.long_name);
+						sw.Write("\t" + g.comp_list.Count.ToString());
 						if (def.has_default)
-							sw.Write(", " + def.default_type + " unless otherwise stated");
-						sw.WriteLine(")");
+							sw.Write("\t" + def.default_type + " unless otherwise stated");
+						sw.WriteLine();
 					}
+					else
+						sw.WriteLine(g.designator + "\t" + g.comp_list.Count.ToString());
+
+					// component list
 					foreach (Component c in g.comp_list)
-						sw.WriteLine("\t" + c.reference +
-											"\t" + c.value +
-											"\t" + c.footprint_normalized +
-											"\t" + c.precision);
+					{
+						if (c.footprint_normalized == "no part")
+							continue;
+
+						sw.WriteLine(	"\t" + c.reference +
+										"\t" + c.value +
+										"\t" + c.footprint_normalized +
+										"\t" + c.precision);
+					}
 					sw.WriteLine();
 				}
 			}

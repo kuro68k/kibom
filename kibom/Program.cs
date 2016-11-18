@@ -18,16 +18,77 @@ namespace kibom
 	{
 		static void Main(string[] args)
 		{
-			if (!Footprint.LoadSubsFile("") ||
-				!Component.LoadDefaultsFile(""))
+			string filename = "";
+			string path = "";
+			string outputs = "";
+			if (!ParseArgs(args, out filename, out path, out outputs))
 				return;
-			
+
+			Console.WriteLine(filename);
+			Console.WriteLine(path);
+			Console.WriteLine(outputs);
+
+			if (!Footprint.LoadSubsFile(path) ||
+				!Component.LoadDefaultsFile(path))
+				return;
+
 			XmlDocument doc = new XmlDocument();
-			doc.Load("P3_AM_antenna.xml");
-			ParseKicadXML(doc);
+			doc.Load(path + filename);
+			ParseKicadXML(doc, path, filename, outputs);
 		}
 
-		static bool ParseKicadXML(XmlDocument doc)
+		static bool ParseArgs(string[] args, out string filename, out string path, out string outputs)
+		{
+			filename = "";
+			path = "";
+			outputs = "";
+
+			if (args.Count() < 1)
+			{
+				Console.WriteLine("kibom <bom.xml> [-tsv] [-pdf] [-rtf] [-debug]");
+				return false;
+			}
+
+			filename = args[0];
+			if (!File.Exists(filename))
+			{
+				Console.WriteLine("File not found.");
+				return false;
+			}
+			path = Path.GetDirectoryName(filename);
+			filename = Path.GetFileName(filename);
+
+			// parse other args
+			for (int i = 1; i < args.Count(); i++)
+			{
+				switch(args[i].ToLower())
+				{
+					case "-tsv":
+					outputs += "t";
+					break;
+
+					case "-pdf":
+					outputs += "p";
+					break;
+
+					case "-rtf":
+					outputs += "r";
+					break;
+
+					case "-debug":
+					outputs += "r";
+					break;
+					
+					default:
+					Console.WriteLine("Unknown argument: \"" + args[i] + "\"");
+					return false;
+				}
+			}
+			
+			return true;
+		}
+
+		static bool ParseKicadXML(XmlDocument doc, string path, string filename, string outputs)
 		{
 			if (!ParseHeader(doc))
 				return false;
@@ -45,26 +106,32 @@ namespace kibom
 			// sort groups alphabetically
 			merged_groups.Sort((a, b) => a.designator.CompareTo(b.designator));
 
-			Output.OutputTSV(merged_groups, "test_tsv.txt");
-			Output.OutputPDF(merged_groups, "test_tsv.pdf");
+			string base_filename = Path.GetFileNameWithoutExtension(path + filename);
+			if (outputs.Contains('t'))
+				Output.OutputTSV(merged_groups, base_filename + ".txt");
+			if (outputs.Contains('p'))
+				Output.OutputPDF(merged_groups, base_filename + ".pdf");
 
 			// debug output
-			foreach (DesignatorGroup g in merged_groups)
+			if (outputs.Contains('d'))
 			{
-				Console.WriteLine("Group: " + g.designator + " (" + g.comp_list.Count.ToString() + ")");
-				DefaultComp def = Component.FindDefaultComp(g.designator);
-				if (def != null)
+				foreach (DesignatorGroup g in merged_groups)
 				{
-					Console.Write("(" + def.long_name);
-					if (def.has_default)
-						Console.Write(", " + def.default_type + " unless otherwise stated");
-					Console.WriteLine(")");
+					Console.WriteLine("Group: " + g.designator + " (" + g.comp_list.Count.ToString() + ")");
+					DefaultComp def = Component.FindDefaultComp(g.designator);
+					if (def != null)
+					{
+						Console.Write("(" + def.long_name);
+						if (def.has_default)
+							Console.Write(", " + def.default_type + " unless otherwise stated");
+						Console.WriteLine(")");
+					}
+					foreach (Component c in g.comp_list)
+						Console.WriteLine(	"\t" + c.reference +
+											"\t" + c.value +
+											"\t" + c.footprint_normalized);
+					Console.WriteLine();
 				}
-				foreach (Component c in g.comp_list)
-					Console.WriteLine(	"\t" + c.reference +
-										"\t" + c.value +
-										"\t" + c.footprint_normalized);
-				Console.WriteLine();
 			}
 			return true;
 		}

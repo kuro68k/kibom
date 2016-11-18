@@ -36,7 +36,7 @@ namespace kibom
 						line_no++;
 						string line = sr.ReadLine();
 						line = line.Trim();
-						if (line == "")
+						if ((line == "") || (line.StartsWith("#")))
 							continue;
 
 						if (!line.Contains('\t'))
