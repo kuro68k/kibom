@@ -4,9 +4,11 @@
 Status: **Beta**
 Licence: GPL v3
 
-Language: C#, Visual Studio 2013
+Language: C#, Visual Studio 2013, Mono
 
 This application uses PDFSharp and MigraDoc.
+
+To build with Mono: `xbuild kibom.sln /property:Configuration=Release /property:Platform=x64`
 
 
 ### Generate normalized, readable BOMs for Kicad ###
