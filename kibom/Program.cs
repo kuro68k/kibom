@@ -19,14 +19,16 @@ namespace kibom
 		static void Main(string[] args)
 		{
 			string filename = "";
+			string output_filename = "";
 			string path = "";
 			string outputs = "";
-			if (!ParseArgs(args, out filename, out path, out outputs))
+			if (!ParseArgs(args, out filename, out path, out outputs, out output_filename))
 				return;
 
-			Console.WriteLine(filename);
-			Console.WriteLine(path);
-			Console.WriteLine(outputs);
+			//Console.WriteLine(filename);
+			//Console.WriteLine(path);
+			//Console.WriteLine(output_filename);
+			//Console.WriteLine(outputs);
 
 			if (!Footprint.LoadSubsFile(path) ||
 				!Component.LoadDefaultsFile(path))
@@ -34,18 +36,19 @@ namespace kibom
 
 			XmlDocument doc = new XmlDocument();
 			doc.Load(path + filename);
-			ParseKicadXML(doc, path, filename, outputs);
+			ParseKicadXML(doc, path, filename, outputs, output_filename);
 		}
 
-		static bool ParseArgs(string[] args, out string filename, out string path, out string outputs)
+		static bool ParseArgs(string[] args, out string filename, out string path, out string outputs, out string output_filename)
 		{
 			filename = "";
 			path = "";
 			outputs = "";
+			output_filename = "";
 
 			if (args.Count() < 1)
 			{
-				Console.WriteLine("kibom <bom.xml> [-tsv] [-pdf] [-rtf] [-debug]");
+				Console.WriteLine("kibom <bom.xml> [output_file] [-tsv] [-pdf] [-rtf] [-debug]");
 				return false;
 			}
 
@@ -56,6 +59,8 @@ namespace kibom
 				return false;
 			}
 			path = Path.GetDirectoryName(filename);
+			if (!path.EndsWith("\\"))
+				path += "\\";
 			filename = Path.GetFileName(filename);
 
 			// parse other args
@@ -80,18 +85,28 @@ namespace kibom
 					break;
 					
 					default:
-					Console.WriteLine("Unknown argument: \"" + args[i] + "\"");
-					return false;
+					if (output_filename == "")
+						output_filename = args[i];
+					else
+					{
+						Console.WriteLine("Unknown argument: \"" + args[i] + "\"");
+						return false;
+					}
+					break;
 				}
 			}
 			
 			return true;
 		}
 
-		static bool ParseKicadXML(XmlDocument doc, string path, string filename, string outputs)
+		static bool ParseKicadXML(XmlDocument doc, string path, string filename, string outputs, string output_filename)
 		{
-			if (!ParseHeader(doc))
+			HeaderBlock header = new HeaderBlock();
+			if (!header.ParseHeader(doc))
+			{
+				Console.WriteLine("Could not parse XML header block.");
 				return false;
+			}
 			
 			// build component list
 			List<Component> comp_list = ParseComponents(doc);
@@ -106,11 +121,25 @@ namespace kibom
 			// sort groups alphabetically
 			merged_groups.Sort((a, b) => a.designator.CompareTo(b.designator));
 
-			string base_filename = Path.GetFileNameWithoutExtension(path + filename);
-			if (outputs.Contains('t'))
-				Output.OutputTSV(merged_groups, base_filename + ".txt");
-			if (outputs.Contains('p'))
-				Output.OutputPDF(merged_groups, base_filename + ".pdf");
+			if (output_filename == "")
+			{
+				string base_filename = Path.GetFileNameWithoutExtension(path + filename);
+				if (outputs.Contains('t'))
+					Output.OutputTSV(merged_groups, header, path + base_filename + ".txt");
+				if (outputs.Contains('p'))
+					Output.OutputPDF(merged_groups, header, path + base_filename + ".pdf");
+				if (outputs.Contains('r'))
+					Output.OutputPDF(merged_groups, header, path + base_filename + ".rtf", true);
+			}
+			else
+			{
+				if (outputs.Contains('t'))
+					Output.OutputTSV(merged_groups, header, output_filename);
+				if (outputs.Contains('p'))
+					Output.OutputPDF(merged_groups, header, output_filename);
+				if (outputs.Contains('r'))
+					Output.OutputPDF(merged_groups, header, output_filename, true);
+			}
 
 			// debug output
 			if (outputs.Contains('d'))
@@ -187,7 +216,7 @@ namespace kibom
 				if (!comp.footprint.Contains("no part"))		// ignore pad only parts
 					comp_list.Add(comp);
 
-				Console.WriteLine(comp.reference + "\t" + comp.value + "\t" + comp.footprint_normalized);
+				//Console.WriteLine(comp.reference + "\t" + comp.value + "\t" + comp.footprint_normalized);
 			}
 
 			return comp_list;
@@ -230,14 +259,6 @@ namespace kibom
 				//g.comp_list.Sort((a, b) => a.value.CompareTo(b.value));
 				g.comp_list.Sort((a, b) => a.numeric_value.CompareTo(b.numeric_value));
 			}
-		}
-
-		static bool ParseHeader(XmlDocument doc)
-		{
-			XmlNode header_node = doc.DocumentElement.SelectSingleNode("design");
-			Console.WriteLine(header_node.SelectSingleNode("date").InnerText);
-
-			return true;
 		}
 
 	}

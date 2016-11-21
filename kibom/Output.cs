@@ -14,10 +14,19 @@ namespace kibom
 {
 	class Output
 	{
-		public static void OutputTSV(List<DesignatorGroup> groups, string file)
+		public static void OutputTSV(List<DesignatorGroup> groups, HeaderBlock header, string file)
 		{
+			Console.WriteLine("Generating " + file + "...");
 			using (StreamWriter sw = new StreamWriter(file))
 			{
+				sw.WriteLine("Title\t" + header.title);
+				sw.WriteLine("Date\t" + header.date);
+				sw.WriteLine("Source\t" + header.source);
+				sw.WriteLine("Revsision\t" + header.revision);
+				if (header.company != "")
+					sw.WriteLine("Company\t" + header.company);
+				sw.WriteLine("");
+
 				foreach (DesignatorGroup g in groups)
 				{
 					// check for groups that are entire "no part"
@@ -60,8 +69,10 @@ namespace kibom
 			}
 		}
 
-		public static void OutputPDF(List<DesignatorGroup> groups, string file)
+		public static void OutputPDF(List<DesignatorGroup> groups, HeaderBlock header, string file, bool rtf = false)
 		{
+			Console.WriteLine("Generating " + file + "...");
+
 			// document setup
 			var doc = new Document();
 			doc.DefaultPageSetup.PageFormat = PageFormat.A4;
@@ -83,9 +94,11 @@ namespace kibom
 			var section = doc.AddSection();
 			section.Footers.Primary.Add(footer.Clone());
 			section.Footers.EvenPage.Add(footer.Clone());
+			PDFCreateHeader(ref section, header);
 			var para = section.AddParagraph();
 			var table = PDFCreateTable(ref section);
 
+			// BOM table
 			int i = 1;
 			foreach (DesignatorGroup g in groups)
 			{
@@ -144,10 +157,57 @@ namespace kibom
 			}
 
 			// generate PDF file
-			var pdfRenderer = new PdfDocumentRenderer(true, PdfFontEmbedding.Always);
-			pdfRenderer.Document = doc;
-			pdfRenderer.RenderDocument();
-			pdfRenderer.PdfDocument.Save(file);
+			if (!rtf)
+			{
+				var pdfRenderer = new PdfDocumentRenderer(true, PdfFontEmbedding.Always);
+				pdfRenderer.Document = doc;
+				pdfRenderer.RenderDocument();
+				pdfRenderer.PdfDocument.Save(file);
+			}
+			else
+			{
+				var rtfRenderer = new RtfDocumentRenderer();
+				rtfRenderer.Render(doc, file, null);
+			}
+		}
+
+		static void PDFCreateHeader(ref Section section, HeaderBlock header)
+		{
+			var table = section.AddTable();
+
+			table.Borders.Width = 0;
+			table.TopPadding = 1;
+			table.BottomPadding = 2;
+			table.LeftPadding = 0;
+			table.RightPadding = 10;
+
+			table.AddColumn();
+			table.AddColumn("20cm");
+
+			var row = table.AddRow();
+			row.Cells[0].AddParagraph("Title");
+			row.Cells[0].Format.Font.Bold = true;
+			row.Cells[1].AddParagraph(header.title);
+			row = table.AddRow();
+			row.Cells[0].AddParagraph("Date");
+			row.Cells[0].Format.Font.Bold = true;
+			row.Cells[1].AddParagraph(header.date);
+			row = table.AddRow();
+			row.Cells[0].AddParagraph("Source");
+			row.Cells[0].Format.Font.Bold = true;
+			row.Cells[1].AddParagraph(header.source);
+			row = table.AddRow();
+			row.Cells[0].AddParagraph("Revision");
+			row.Cells[0].Format.Font.Bold = true;
+			row.Cells[1].AddParagraph(header.revision);
+			if (header.company != "")
+			{
+				row = table.AddRow();
+				row.Cells[0].AddParagraph("Company");
+				row.Cells[0].Format.Font.Bold = true;
+				row.Cells[1].AddParagraph(header.company);
+			}
+			table.AddRow();
 		}
 
 		static Table PDFCreateTable(ref Section section)
