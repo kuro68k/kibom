@@ -26,8 +26,8 @@ Can be used as a plug-in for Kicad. Creates tab separated (TSV) or PDF/RTF BOMs.
 - Custom fields
 
 
-Bom_defaults.txt and bom_subs.txt are used to clean up the output. The defaults file matches designators with names and default types (e.g. R = Resistor, default 1% 0.125W SMD). The subs file is used to do a simple search and replace on footprint strings (e.g. "Resistors_SMD:R_0603" becomes "0603").
+`Bom_defaults.txt` and bom_subs.txt are used to clean up the output. The defaults file matches designators with names and default types (e.g. R = Resistor, default 1% 0.125W SMD). The subs file is used to do a simple search and replace on footprint strings (e.g. `Resistors_SMD:R_0603` becomes `0603`).
 
-Custom_fields.txt lists custom fields that can be added to components in Kicad, and which will then appear on the BOM.
+`Custom_fields.txt` lists custom fields that can be added to components in Kicad, and which will then appear on the BOM.
 
 Tab Separated Value (TSV) output can be copy/pasted into Google Sheets and most other spreadsheet programs. PDF output needs headers and footers adding to it. A notes section at the end would also be a good idea.
