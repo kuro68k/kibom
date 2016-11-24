@@ -159,7 +159,7 @@ namespace kibom
 			// generate PDF file
 			if (!rtf)
 			{
-				var pdfRenderer = new PdfDocumentRenderer(true, PdfFontEmbedding.Always);
+				var pdfRenderer = new PdfDocumentRenderer(true, PdfSharp.Pdf.PdfFontEmbedding.Always);
 				pdfRenderer.Document = doc;
 				pdfRenderer.RenderDocument();
 				pdfRenderer.PdfDocument.Save(file);
