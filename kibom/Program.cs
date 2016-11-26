@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 using System.IO;
+using System.Reflection;
 
 namespace kibom
 {
@@ -18,6 +19,9 @@ namespace kibom
 	{
 		static void Main(string[] args)
 		{
+            Version v = Assembly.GetExecutingAssembly().GetName().Version;
+            Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, @"Kibom {0}.{1} (build {2}.{3})", v.Major, v.Minor, v.Build, v.Revision));
+
 			string filename = "";
 			string output_filename = "";
 			string path = "";
@@ -37,6 +41,7 @@ namespace kibom
 			XmlDocument doc = new XmlDocument();
 			doc.Load(path + filename);
 			ParseKicadXML(doc, path, filename, outputs, output_filename);
+            Console.WriteLine("BOM generated.");
 		}
 
 		static bool ParseArgs(string[] args, out string filename, out string path, out string outputs, out string output_filename)
@@ -58,7 +63,7 @@ namespace kibom
 				Console.WriteLine("File not found.");
 				return false;
 			}
-			path = Path.GetDirectoryName(filename);
+			path = Path.GetDirectoryName(Path.GetFullPath(filename));
 			if (!path.EndsWith("\\"))
 				path += "\\";
 			filename = Path.GetFileName(filename);
