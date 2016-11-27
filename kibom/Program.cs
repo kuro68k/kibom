@@ -119,9 +119,10 @@ namespace kibom
 				return false;
 
 			// group components by designators and sort by value
-			List<DesignatorGroup> groups = BuildDesignatorGroups(comp_list);
-			SortDesignatorGroups(ref groups);
+			List<DesignatorGroup> groups = Component.BuildDesignatorGroups(comp_list);
+			Component.SortDesignatorGroups(ref groups);
 			List<DesignatorGroup> merged_groups = Component.MergeComponents(groups);
+			Component.SortComponents(ref merged_groups);
 
 			// sort groups alphabetically
 			merged_groups.Sort((a, b) => a.designator.CompareTo(b.designator));
@@ -230,9 +231,6 @@ namespace kibom
 					}
 				}
 
-				//if (!comp.footprint.Contains("no part"))		// ignore pad only parts
-				//	comp.no_part = true;
-
 				if (!comp.no_part)
 					comp_list.Add(comp);
 
@@ -241,45 +239,5 @@ namespace kibom
 
 			return comp_list;
 		}
-
-		static List<DesignatorGroup> BuildDesignatorGroups(List<Component> comp_list)
-		{
-			var groups = new List<DesignatorGroup>();
-
-			foreach(Component comp in comp_list)
-			{
-				bool found = false;
-				for (int i = 0; i < groups.Count; i++)
-				{
-					if (groups[i].designator == comp.designator)
-					{
-						groups[i].comp_list.Add(comp);
-						found = true;
-						break;
-					}
-				}
-				if (!found)
-				{
-					var new_group = new DesignatorGroup();
-					new_group.designator = comp.designator;
-					new_group.comp_list = new List<Component>();
-					new_group.comp_list.Add(comp);
-					groups.Add(new_group);
-				}
-			}
-
-			return groups;
-		}
-
-		static void SortDesignatorGroups(ref List<DesignatorGroup> groups)
-		{
-			foreach (DesignatorGroup g in groups)
-			{
-				// sort by value
-				//g.comp_list.Sort((a, b) => a.value.CompareTo(b.value));
-				g.comp_list.Sort((a, b) => a.numeric_value.CompareTo(b.numeric_value));
-			}
-		}
-
 	}
 }
