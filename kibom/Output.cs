@@ -26,6 +26,7 @@ namespace kibom
 				if (header.company != "")
 					sw.WriteLine("Company\t" + header.company);
 				sw.WriteLine("");
+				//sw.WriteLine("Type\tDesignation\tValue\tPart Name");
 
 				foreach (DesignatorGroup g in groups)
 				{
@@ -33,7 +34,7 @@ namespace kibom
 					bool all_no_part = true;
 					foreach (Component c in g.comp_list)
 					{
-						if (c.footprint_normalized != "no part")
+						if (!c.no_part)
 							all_no_part = false;
 					}
 					if (all_no_part)
@@ -56,12 +57,16 @@ namespace kibom
 					// component list
 					foreach (Component c in g.comp_list)
 					{
-						if (c.footprint_normalized == "no part")
+						if (c.no_part)
 							continue;
 
+						string footprint = c.footprint_normalized;
+						if (footprint == "")
+							footprint = c.footprint;
 						sw.WriteLine(	"\t" + c.reference +
 										"\t" + c.value +
-										"\t" + c.footprint_normalized +
+										"\t" + c.part_no +
+										"\t" + footprint +
 										"\t" + c.precision);
 					}
 					sw.WriteLine();
@@ -106,7 +111,7 @@ namespace kibom
 				bool all_no_part = true;
 				foreach (Component c in g.comp_list)
 				{
-					if (c.footprint_normalized != "no part")
+					if (!c.no_part)
 						all_no_part = false;
 				}
 				if (all_no_part)
@@ -134,7 +139,7 @@ namespace kibom
 
 				foreach (Component c in g.comp_list)
 				{
-					if (c.footprint_normalized == "no part")
+					if (c.no_part)
 						continue;
 
 					row = table.AddRow();

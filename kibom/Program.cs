@@ -184,7 +184,13 @@ namespace kibom
 				comp.value = node.SelectSingleNode("value").InnerText;
 				comp.numeric_value = Component.ValueToNumeric(comp.value);
 				comp.footprint = node.SelectSingleNode("footprint").InnerText;
+				
+				// normalized footprint
 				comp.footprint_normalized = Footprint.substitute(comp.footprint, true, true);
+				if (comp.footprint_normalized == "no part")
+					comp.no_part = true;
+				if (comp.footprint.Contains(':'))	// contrains library name
+					comp.footprint = comp.footprint.Substring(comp.footprint.IndexOf(':') + 1);
 				
 				// custom BOM fields
 				XmlNode fields = node.SelectSingleNode("fields");
@@ -196,6 +202,7 @@ namespace kibom
 						switch(field.Attributes["name"].Value.ToLower())
 						{
 							case "bom_footprint":
+							//case "bom_partno":
 							comp.footprint_normalized = field.InnerText;
 							break;
 
@@ -214,11 +221,19 @@ namespace kibom
 							case "code":
 							comp.code = field.InnerText;
 							break;
+
+							case "bom_no_part":
+							if (field.InnerText.ToLower() == "true")
+								comp.no_part = true;
+							break;
 						}
 					}
 				}
-				
-				if (!comp.footprint.Contains("no part"))		// ignore pad only parts
+
+				//if (!comp.footprint.Contains("no part"))		// ignore pad only parts
+				//	comp.no_part = true;
+
+				if (!comp.no_part)
 					comp_list.Add(comp);
 
 				//Console.WriteLine(comp.reference + "\t" + comp.value + "\t" + comp.footprint_normalized);
