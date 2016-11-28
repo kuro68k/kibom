@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 using System.IO;
+using System.Reflection;
 
 namespace kibom
 {
@@ -18,6 +19,9 @@ namespace kibom
 	{
 		static void Main(string[] args)
 		{
+            Version v = Assembly.GetExecutingAssembly().GetName().Version;
+            Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, @"Kibom {0}.{1} (build {2}.{3})", v.Major, v.Minor, v.Build, v.Revision));
+
 			string filename = "";
 			string output_filename = "";
 			string path = "";
@@ -37,6 +41,7 @@ namespace kibom
 			XmlDocument doc = new XmlDocument();
 			doc.Load(path + filename);
 			ParseKicadXML(doc, path, filename, outputs, output_filename);
+            Console.WriteLine("BOM generated.");
 		}
 
 		static bool ParseArgs(string[] args, out string filename, out string path, out string outputs, out string output_filename)
@@ -58,7 +63,7 @@ namespace kibom
 				Console.WriteLine("File not found.");
 				return false;
 			}
-			path = Path.GetDirectoryName(filename);
+			path = Path.GetDirectoryName(Path.GetFullPath(filename));
 			if (!path.EndsWith("\\"))
 				path += "\\";
 			filename = Path.GetFileName(filename);
@@ -114,9 +119,10 @@ namespace kibom
 				return false;
 
 			// group components by designators and sort by value
-			List<DesignatorGroup> groups = BuildDesignatorGroups(comp_list);
-			SortDesignatorGroups(ref groups);
+			List<DesignatorGroup> groups = Component.BuildDesignatorGroups(comp_list);
+			Component.SortDesignatorGroups(ref groups);
 			List<DesignatorGroup> merged_groups = Component.MergeComponents(groups);
+			Component.SortComponents(ref merged_groups);
 
 			// sort groups alphabetically
 			merged_groups.Sort((a, b) => a.designator.CompareTo(b.designator));
@@ -179,7 +185,13 @@ namespace kibom
 				comp.value = node.SelectSingleNode("value").InnerText;
 				comp.numeric_value = Component.ValueToNumeric(comp.value);
 				comp.footprint = node.SelectSingleNode("footprint").InnerText;
+				
+				// normalized footprint
 				comp.footprint_normalized = Footprint.substitute(comp.footprint, true, true);
+				if (comp.footprint_normalized == "no part")
+					comp.no_part = true;
+				if (comp.footprint.Contains(':'))	// contrains library name
+					comp.footprint = comp.footprint.Substring(comp.footprint.IndexOf(':') + 1);
 				
 				// custom BOM fields
 				XmlNode fields = node.SelectSingleNode("fields");
@@ -191,6 +203,7 @@ namespace kibom
 						switch(field.Attributes["name"].Value.ToLower())
 						{
 							case "bom_footprint":
+							//case "bom_partno":
 							comp.footprint_normalized = field.InnerText;
 							break;
 
@@ -209,11 +222,16 @@ namespace kibom
 							case "code":
 							comp.code = field.InnerText;
 							break;
+
+							case "bom_no_part":
+							if (field.InnerText.ToLower() == "true")
+								comp.no_part = true;
+							break;
 						}
 					}
 				}
-				
-				if (!comp.footprint.Contains("no part"))		// ignore pad only parts
+
+				if (!comp.no_part)
 					comp_list.Add(comp);
 
 				//Console.WriteLine(comp.reference + "\t" + comp.value + "\t" + comp.footprint_normalized);
@@ -221,45 +239,5 @@ namespace kibom
 
 			return comp_list;
 		}
-
-		static List<DesignatorGroup> BuildDesignatorGroups(List<Component> comp_list)
-		{
-			var groups = new List<DesignatorGroup>();
-
-			foreach(Component comp in comp_list)
-			{
-				bool found = false;
-				for (int i = 0; i < groups.Count; i++)
-				{
-					if (groups[i].designator == comp.designator)
-					{
-						groups[i].comp_list.Add(comp);
-						found = true;
-						break;
-					}
-				}
-				if (!found)
-				{
-					var new_group = new DesignatorGroup();
-					new_group.designator = comp.designator;
-					new_group.comp_list = new List<Component>();
-					new_group.comp_list.Add(comp);
-					groups.Add(new_group);
-				}
-			}
-
-			return groups;
-		}
-
-		static void SortDesignatorGroups(ref List<DesignatorGroup> groups)
-		{
-			foreach (DesignatorGroup g in groups)
-			{
-				// sort by value
-				//g.comp_list.Sort((a, b) => a.value.CompareTo(b.value));
-				g.comp_list.Sort((a, b) => a.numeric_value.CompareTo(b.numeric_value));
-			}
-		}
-
 	}
 }

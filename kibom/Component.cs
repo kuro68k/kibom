@@ -38,6 +38,7 @@ namespace kibom
 		public string part_no = "";
 		public string note = "";
 		public string code;
+        public bool no_part = false;
 
 		static List<DefaultComp> default_list = new List<DefaultComp>();
 
@@ -143,6 +144,52 @@ namespace kibom
 			return nv;
 		}
 
+#region Group Building
+
+		public static List<DesignatorGroup> BuildDesignatorGroups(List<Component> comp_list)
+		{
+			var groups = new List<DesignatorGroup>();
+
+			foreach (Component comp in comp_list)
+			{
+				bool found = false;
+				for (int i = 0; i < groups.Count; i++)
+				{
+					if (groups[i].designator == comp.designator)
+					{
+						groups[i].comp_list.Add(comp);
+						found = true;
+						break;
+					}
+				}
+				if (!found)
+				{
+					var new_group = new DesignatorGroup();
+					new_group.designator = comp.designator;
+					new_group.comp_list = new List<Component>();
+					new_group.comp_list.Add(comp);
+					groups.Add(new_group);
+				}
+			}
+
+			return groups;
+		}
+
+		public static void SortDesignatorGroups(ref List<DesignatorGroup> groups)
+		{
+			foreach (DesignatorGroup g in groups)
+			{
+				// sort by value
+				g.comp_list.Sort((a, b) => a.numeric_value.CompareTo(b.numeric_value));
+			}
+		}
+
+#endregion
+
+#region Merging
+
+		// Designator groups contain multiple components with the same designators.
+		// Sort the components into batches of identical ones.
 		public static List<DesignatorGroup> MergeComponents(List<DesignatorGroup> groups)
 		{
 			var new_groups = new List<DesignatorGroup>();
@@ -164,19 +211,20 @@ namespace kibom
 					}
 					else
 					{
-						if ((last_c.value != c.value) ||	// new value group
+						if ((last_c.value != c.value) ||
 							(last_c.footprint != c.footprint) ||
 							(last_c.code != c.code) ||
 							(last_c.note != c.note) ||
 							(last_c.part_no != c.part_no) ||
 							(last_c.precision != c.precision))
 						{
+							// different, create new value group
 							last_c.reference = SortCommaSeparatedString(last_c.reference);
 							new_g.comp_list.Add(last_c);
 							last_c = c;
 							last_c.count = 1;
 						}
-						else							// same, add to value group
+						else	// same, add to value group
 						{
 							last_c.reference += ", " + c.reference;
 							last_c.count++;
@@ -184,8 +232,10 @@ namespace kibom
 					}
 				}
 
+				// above loop doesn't add the last group to the list
 				last_c.reference = SortCommaSeparatedString(last_c.reference);
 				new_g.comp_list.Add(last_c);
+				// start a new designator group
 				new_groups.Add(new_g);
 			}
 
@@ -228,10 +278,32 @@ namespace kibom
 			string returnValue = "";
 			for (int i = stringArray.GetLowerBound(0); i <= stringArray.GetUpperBound(0); i++)
 			{
-				returnValue = returnValue + stringArray[i] + ",";
+				returnValue = returnValue + stringArray[i].Trim() + ", ";
 			}
-			return returnValue.Remove(returnValue.Length - 1, 1);
+			return returnValue.Remove(returnValue.Length - 2, 1);
 		}
+
+		public static void SortComponents(ref List<DesignatorGroup> groups)
+		{
+			foreach (DesignatorGroup g in groups)
+			{
+				g.comp_list.Sort((a, b) => CompareDesignators(a.reference, b.reference));
+			}
+		}
+
+		static int CompareDesignators(string a, string b)
+		{
+			if (a.Contains(','))
+				a = a.Substring(0, a.IndexOf(','));
+			if (b.Contains(','))
+				b = b.Substring(0, b.IndexOf(','));
+			int ai, bi;
+			int.TryParse(a.Substring(1), out ai);
+			int.TryParse(b.Substring(1), out bi);
+			return ai.CompareTo(bi);
+		}
+
+#endregion
 
 	}
 }
