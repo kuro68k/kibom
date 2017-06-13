@@ -29,11 +29,6 @@ namespace kibom
 			if (!ParseArgs(args, out filename, out path, out outputs, out output_filename))
 				return;
 
-			//Console.WriteLine(filename);
-			//Console.WriteLine(path);
-			//Console.WriteLine(output_filename);
-			//Console.WriteLine(outputs);
-
 			if (!Footprint.LoadSubsFile(path) ||
 				!Component.LoadDefaultsFile(path))
 				return;

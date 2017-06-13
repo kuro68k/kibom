@@ -146,6 +146,7 @@ namespace kibom
 
 #region Group Building
 
+		// create groups of components with the same designator, unsorted
 		public static List<DesignatorGroup> BuildDesignatorGroups(List<Component> comp_list)
 		{
 			var groups = new List<DesignatorGroup>();
@@ -175,13 +176,27 @@ namespace kibom
 			return groups;
 		}
 
+		// sort DesignatorGroup by values
 		public static void SortDesignatorGroups(ref List<DesignatorGroup> groups)
 		{
 			foreach (DesignatorGroup g in groups)
 			{
 				// sort by value
+				//if (g.designator == "U")
+				//	DumpDesignatorGroup(g);
 				g.comp_list.Sort((a, b) => a.numeric_value.CompareTo(b.numeric_value));
+				//if (g.designator == "U")
+				//{
+				//	Console.WriteLine();
+				//	DumpDesignatorGroup(g);
+				//}
 			}
+		}
+
+		private static void DumpDesignatorGroup(DesignatorGroup g)
+		{
+			foreach (Component c in g.comp_list)
+				Console.WriteLine(c.reference);
 		}
 
 #endregion
@@ -200,41 +215,44 @@ namespace kibom
 				new_g.comp_list = new List<Component>();
 				new_g.designator = g.designator;
 
-				Component last_c = null;
-
 				foreach (Component c in g.comp_list)
 				{
-					if (last_c == null)					// first item
-					{
-						last_c = c;
-						last_c.count = 1;
-					}
+					if (new_g.comp_list.Count == 0)
+						new_g.comp_list.Add(c);
 					else
 					{
-						if ((last_c.value != c.value) ||
-							(last_c.footprint != c.footprint) ||
-							(last_c.code != c.code) ||
-							(last_c.note != c.note) ||
-							(last_c.part_no != c.part_no) ||
-							(last_c.precision != c.precision))
+						// search through existing lists for matching components
+						int found = -1;
+						//if (c.designator == "U")
+						//	System.Diagnostics.Debugger.Break();
+						for (int i = 0; i < new_g.comp_list.Count; i++)
 						{
-							// different, create new value group
-							last_c.reference = SortCommaSeparatedString(last_c.reference);
-							new_g.comp_list.Add(last_c);
-							last_c = c;
-							last_c.count = 1;
+							if ((new_g.comp_list[i].value == c.value) &&
+								(new_g.comp_list[i].footprint == c.footprint) &&
+								(new_g.comp_list[i].code == c.code) &&
+								(new_g.comp_list[i].note == c.note) &&
+								(new_g.comp_list[i].part_no == c.part_no) &&
+								(new_g.comp_list[i].precision == c.precision))
+							{
+								found = i;
+								break;
+							}
 						}
-						else	// same, add to value group
+
+						if (found == -1)	// create new value group
+							new_g.comp_list.Add(c);
+						else				// add to existing group
 						{
-							last_c.reference += ", " + c.reference;
-							last_c.count++;
+							new_g.comp_list[found].reference += ", " + c.reference;
+							new_g.comp_list[found].count++;
 						}
 					}
 				}
 
-				// above loop doesn't add the last group to the list
-				last_c.reference = SortCommaSeparatedString(last_c.reference);
-				new_g.comp_list.Add(last_c);
+				// sort references
+				for (int i = 0; i < new_g.comp_list.Count; i++)
+					new_g.comp_list[i].reference = SortCommaSeparatedString(new_g.comp_list[i].reference);
+				
 				// start a new designator group
 				new_groups.Add(new_g);
 			}
