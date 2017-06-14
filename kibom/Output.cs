@@ -46,7 +46,7 @@ namespace kibom
 					if (def != null)
 					{
 						sw.Write(def.long_name);
-						sw.Write("\t" + g.comp_list.Count.ToString());
+						sw.Write("\t" + g.comp_list.Count.ToString() + " values");
 						if (def.has_default)
 							sw.Write("\t" + def.default_type + " unless otherwise stated");
 						sw.WriteLine();
@@ -63,7 +63,8 @@ namespace kibom
 						string footprint = c.footprint_normalized;
 						if (footprint == "")
 							footprint = c.footprint;
-						sw.WriteLine(	"\t" + c.reference +
+						sw.WriteLine(	(c.count + 1).ToString() +
+										"\t" + c.reference +
 										"\t" + c.value +
 										"\t" + c.part_no +
 										"\t" + footprint +
