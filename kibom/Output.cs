@@ -9,11 +9,127 @@ using MigraDoc.DocumentObjectModel.Tables;
 using MigraDoc.RtfRendering;
 using PdfSharp.Pdf;
 using System.IO;
+using System.Drawing;
+using OfficeOpenXml;
+using OfficeOpenXml.Style;
 
 namespace kibom
 {
 	class Output
 	{
+		public static void OutputXLSX(List<DesignatorGroup> groups, HeaderBlock header, string file)
+		{
+			ExcelPackage p = new ExcelPackage();
+			p.Workbook.Properties.Author = "KiBOM";
+			p.Workbook.Properties.Title = header.title;
+			p.Workbook.Properties.Company = header.company;
+			p.Workbook.Properties.Comments = header.source;
+
+			string sheetName = "Bill of Materials";
+			p.Workbook.Worksheets.Add(sheetName);
+			ExcelWorksheet ws = p.Workbook.Worksheets[1];
+			ExcelRange r;
+			ws.Name = sheetName;
+			ws.Cells.Style.Font.Size = 11;			// default font for whole sheet
+			ws.Cells.Style.Font.Name = "Calibri";
+
+			ws.Column(1).Width = 18;
+			ws.Column(2).Width = 35;
+			ws.Column(3).Width = 37;
+			ws.Column(4).Width = 28;
+			ws.Column(5).Width = 37;
+			ws.Column(6).Width = 10;
+
+			// header block
+			ws.Cells[1, 1].Value = "Title";
+			ws.Cells[1, 2].Value = header.title;
+			ws.Cells[2, 1].Value = "Date";
+			ws.Cells[2, 2].Value = header.date;
+			ws.Cells[3, 1].Value = "Source";
+			ws.Cells[3, 2].Value = header.source;
+			ws.Cells[4, 1].Value = "Revision";
+			ws.Cells[4, 2].Value = header.revision;
+			ws.Cells[5, 1].Value = "Company";
+			ws.Cells[5, 2].Value = header.company;
+			r = ws.Cells[1, 1, 5, 1];
+			r.Style.Font.Bold = true;
+			ws.Cells[1, 2].Style.Font.Bold = true;
+
+			// table header
+			ws.Cells[7, 1].Value = "Count";
+			ws.Cells[7, 2].Value = "References";
+			ws.Cells[7, 3].Value = "Values";
+			ws.Cells[7, 4].Value = "MPN";
+			ws.Cells[7, 5].Value = "Form factor";
+			ws.Cells[7, 6].Value = "Precision";
+			r = ws.Cells[7, 1, 7, 6];
+			r.Style.Font.Bold = true;
+			r.Style.Fill.PatternType = ExcelFillStyle.Solid;
+			r.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.Black);
+			r.Style.Font.Color.SetColor(System.Drawing.Color.White);
+
+			int row = 8;
+			foreach (DesignatorGroup g in groups)
+			{
+				// check for groups that are entire "no part"
+				bool all_no_part = true;
+				foreach (Component c in g.comp_list)
+				{
+					if (!c.no_part)
+						all_no_part = false;
+				}
+				if (all_no_part)
+					continue;
+
+				// header
+				DefaultComp def = Component.FindDefaultComp(g.designator);
+				if (def != null)
+				{
+					ws.Cells[row, 1].Value = def.long_name;
+					ws.Cells[row, 2].Value = g.comp_list.Count.ToString() + " values";
+					if (def.has_default)
+						ws.Cells[row, 3].Value = def.default_type + " unless otherwise stated";
+				}
+				else
+				{
+					ws.Cells[row, 1].Value = g.designator;
+					ws.Cells[row, 2].Value = g.comp_list.Count.ToString();
+				}
+				ws.Cells[row, 1].Style.Font.Bold = true;
+				r = ws.Cells[row, 1, row, 6];
+				r.Style.Fill.PatternType = ExcelFillStyle.Solid;
+				r.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
+				row++;
+
+				// component list
+				foreach (Component c in g.comp_list)
+				{
+					if (c.no_part)
+						continue;
+
+					string footprint = c.footprint_normalized;
+					if (footprint == "")
+						footprint = c.footprint;
+					ws.Cells[row, 1].Value = c.count + 1;
+					ws.Cells[row, 2].Value = c.reference;
+					ws.Cells[row, 3].Value = c.value;
+					ws.Cells[row, 4].Value = c.part_no;
+					ws.Cells[row, 5].Value = footprint;
+					ws.Cells[row, 6].Value = c.precision;
+					row++;
+				}
+				row++;
+			}
+
+			r = ws.Cells[1, 1, row, 6];
+			r.Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
+			r.Style.VerticalAlignment = ExcelVerticalAlignment.Top;
+			r.Style.WrapText = true;
+
+			byte[] bin = p.GetAsByteArray();
+			File.WriteAllBytes(file, bin);
+		}
+		
 		public static void OutputTSV(List<DesignatorGroup> groups, HeaderBlock header, string file)
 		{
 			Console.WriteLine("Generating " + file + "...");

@@ -72,6 +72,10 @@ namespace kibom
 					outputs += "t";
 					break;
 
+					case "-xlsx":
+					outputs += "x";
+					break;
+
 					case "-pdf":
 					outputs += "p";
 					break;
@@ -127,6 +131,8 @@ namespace kibom
 				string base_filename = Path.GetFileNameWithoutExtension(path + filename);
 				if (outputs.Contains('t'))
 					Output.OutputTSV(merged_groups, header, path + base_filename + ".txt");
+				if (outputs.Contains('x'))
+					Output.OutputXLSX(merged_groups, header, path + base_filename + ".xlsx");
 				if (outputs.Contains('p'))
 					Output.OutputPDF(merged_groups, header, path + base_filename + ".pdf");
 				if (outputs.Contains('r'))
@@ -136,6 +142,8 @@ namespace kibom
 			{
 				if (outputs.Contains('t'))
 					Output.OutputTSV(merged_groups, header, output_filename);
+				if (outputs.Contains('x'))
+					Output.OutputXLSX(merged_groups, header, output_filename);
 				if (outputs.Contains('p'))
 					Output.OutputPDF(merged_groups, header, output_filename);
 				if (outputs.Contains('r'))
