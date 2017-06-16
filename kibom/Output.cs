@@ -15,11 +15,162 @@ using OfficeOpenXml.Style;
 
 namespace kibom
 {
+	//class Cell
+	//{
+	//	public int x;
+	//	public int y;
+
+	//	public Cell(int _x, int _y)
+	//	{
+	//		x = _x;
+	//		y = _y;
+	//	}
+	//}
+	
+	//class CellLocations
+	//{
+	//	public Cell Title;
+	//	public Cell DocumentNumber;
+	//	public Cell Date;
+	//	public Cell Timestamp;
+	//	public Cell
+	//}
+
 	class Output
 	{
-		public static void OutputXLSX(List<DesignatorGroup> groups, HeaderBlock header, string file)
+		public static void OutputXLSX(List<DesignatorGroup> groups, HeaderBlock header, string file, string template)
 		{
-			ExcelPackage p = new ExcelPackage();
+			ExcelPackage p = null;
+			ExcelWorksheet ws;
+			ExcelRange r;
+			int table_x;
+			int table_y;
+
+			if (string.IsNullOrEmpty(template))
+			{
+				XLSXCreateDefaultSheet(ref p, header, out ws);
+				table_x = 1;
+				table_y = 8;
+			}
+			else
+				XLXSLoadSheet(template, ref p, header, out ws, out table_x, out table_y);
+
+
+			int row = table_y;
+			table_x--;
+			foreach (DesignatorGroup g in groups)
+			{
+				// check for groups that are entire "no part"
+				bool all_no_part = true;
+				foreach (Component c in g.comp_list)
+				{
+					if (!c.no_part)
+						all_no_part = false;
+				}
+				if (all_no_part)
+					continue;
+
+				// header
+				DefaultComp def = Component.FindDefaultComp(g.designator);
+				if (def != null)
+				{
+					ws.Cells[row, table_x + 1].Value = def.long_name;
+					ws.Cells[row, table_x + 2].Value = g.comp_list.Count.ToString() + " value(s)";
+					if (def.has_default)
+						ws.Cells[row, 3].Value = def.default_type + " unless otherwise stated";
+				}
+				else
+				{
+					ws.Cells[row, table_x + 1].Value = g.designator;
+					ws.Cells[row, table_x + 2].Value = g.comp_list.Count.ToString() + " value(s)";
+				}
+				ws.Cells[row, table_x + 1].Style.Font.Bold = true;
+				r = ws.Cells[row, table_x + 1, row, table_x + 6];
+				r.Style.Fill.PatternType = ExcelFillStyle.Solid;
+				r.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
+				r.Style.Border.BorderAround(ExcelBorderStyle.Thin, System.Drawing.Color.LightGray);
+				row++;
+
+				// component list
+				foreach (Component c in g.comp_list)
+				{
+					if (c.no_part)
+						continue;
+
+					string footprint = c.footprint_normalized;
+					if (footprint == "")
+						footprint = c.footprint;
+					ws.Cells[row, table_x + 1].Value = c.count + 1;
+					ws.Cells[row, table_x + 2].Value = c.reference;
+					ws.Cells[row, table_x + 3].Value = c.value;
+					ws.Cells[row, table_x + 4].Value = c.part_no;
+					ws.Cells[row, table_x + 5].Value = footprint;
+					ws.Cells[row, table_x + 6].Value = c.precision;
+					r = ws.Cells[row, table_x + 1, row, table_x + 6];
+					r.Style.Border.BorderAround(ExcelBorderStyle.Thin, System.Drawing.Color.LightGray);
+					r.Style.Border.Left.Style = ExcelBorderStyle.Thin;
+					r.Style.Border.Left.Color.SetColor(System.Drawing.Color.LightGray);
+					row++;
+				}
+				row++;
+			}
+
+			r = ws.Cells[1, table_x + 1, row, table_x + 6];
+			r.Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
+			r.Style.VerticalAlignment = ExcelVerticalAlignment.Top;
+			r.Style.WrapText = true;
+
+			byte[] bin = p.GetAsByteArray();
+			File.WriteAllBytes(file, bin);
+		}
+
+		private static void XLXSLoadSheet(string template, ref ExcelPackage p, HeaderBlock header, out ExcelWorksheet ws, out int table_x, out int table_y)
+		{
+			if (!File.Exists(template))
+				throw new Exception("File not found " + template);
+			FileInfo fi = new FileInfo(template);
+			p = new ExcelPackage(fi);
+			ws = p.Workbook.Worksheets[1];
+
+			table_x = -1;
+			table_y = -1;
+			for (int x = 1; x < 50; x++)
+			{
+				for (int y = 1; y < 100; y++)
+				{
+					if (ws.Cells[y, x].Value == null)
+						continue;
+					switch (ws.Cells[y, x].Value.ToString().ToLower())
+					{
+						case "(title)":
+							ws.Cells[y, x].Value = header.title;
+							break;
+						case "(documentnumber)":
+							ws.Cells[y, x].Value = "not implemented";
+							break;
+						case "(date)":
+							ws.Cells[y, x].Value = header.date;
+							break;
+						case "(revision)":
+							ws.Cells[y, x].Value = header.revision;
+							break;
+						case "(source)":
+							ws.Cells[y, x].Value = header.source;
+							break;
+						case "(table)":
+							table_x = x;
+							table_y = y;
+							break;
+					}
+				}
+			}
+			if (table_x == -1)
+				throw new Exception("(table) location not found.");
+		}
+
+		private static void XLSXCreateDefaultSheet(ref ExcelPackage p, HeaderBlock header, out ExcelWorksheet ws)
+		{
+			p = new ExcelPackage();
 			p.Workbook.Properties.Author = "KiBOM";
 			p.Workbook.Properties.Title = header.title;
 			p.Workbook.Properties.Company = header.company;
@@ -27,7 +178,7 @@ namespace kibom
 
 			string sheetName = "Bill of Materials";
 			p.Workbook.Worksheets.Add(sheetName);
-			ExcelWorksheet ws = p.Workbook.Worksheets[1];
+			ws = p.Workbook.Worksheets[1];
 			ExcelRange r;
 			ws.Name = sheetName;
 			ws.Cells.Style.Font.Size = 11;			// default font for whole sheet
@@ -67,67 +218,6 @@ namespace kibom
 			r.Style.Fill.PatternType = ExcelFillStyle.Solid;
 			r.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.Black);
 			r.Style.Font.Color.SetColor(System.Drawing.Color.White);
-
-			int row = 8;
-			foreach (DesignatorGroup g in groups)
-			{
-				// check for groups that are entire "no part"
-				bool all_no_part = true;
-				foreach (Component c in g.comp_list)
-				{
-					if (!c.no_part)
-						all_no_part = false;
-				}
-				if (all_no_part)
-					continue;
-
-				// header
-				DefaultComp def = Component.FindDefaultComp(g.designator);
-				if (def != null)
-				{
-					ws.Cells[row, 1].Value = def.long_name;
-					ws.Cells[row, 2].Value = g.comp_list.Count.ToString() + " values";
-					if (def.has_default)
-						ws.Cells[row, 3].Value = def.default_type + " unless otherwise stated";
-				}
-				else
-				{
-					ws.Cells[row, 1].Value = g.designator;
-					ws.Cells[row, 2].Value = g.comp_list.Count.ToString();
-				}
-				ws.Cells[row, 1].Style.Font.Bold = true;
-				r = ws.Cells[row, 1, row, 6];
-				r.Style.Fill.PatternType = ExcelFillStyle.Solid;
-				r.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
-				row++;
-
-				// component list
-				foreach (Component c in g.comp_list)
-				{
-					if (c.no_part)
-						continue;
-
-					string footprint = c.footprint_normalized;
-					if (footprint == "")
-						footprint = c.footprint;
-					ws.Cells[row, 1].Value = c.count + 1;
-					ws.Cells[row, 2].Value = c.reference;
-					ws.Cells[row, 3].Value = c.value;
-					ws.Cells[row, 4].Value = c.part_no;
-					ws.Cells[row, 5].Value = footprint;
-					ws.Cells[row, 6].Value = c.precision;
-					row++;
-				}
-				row++;
-			}
-
-			r = ws.Cells[1, 1, row, 6];
-			r.Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
-			r.Style.VerticalAlignment = ExcelVerticalAlignment.Top;
-			r.Style.WrapText = true;
-
-			byte[] bin = p.GetAsByteArray();
-			File.WriteAllBytes(file, bin);
 		}
 		
 		public static void OutputTSV(List<DesignatorGroup> groups, HeaderBlock header, string file)
