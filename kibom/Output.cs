@@ -15,27 +15,6 @@ using OfficeOpenXml.Style;
 
 namespace kibom
 {
-	//class Cell
-	//{
-	//	public int x;
-	//	public int y;
-
-	//	public Cell(int _x, int _y)
-	//	{
-	//		x = _x;
-	//		y = _y;
-	//	}
-	//}
-	
-	//class CellLocations
-	//{
-	//	public Cell Title;
-	//	public Cell DocumentNumber;
-	//	public Cell Date;
-	//	public Cell Timestamp;
-	//	public Cell
-	//}
-
 	class Output
 	{
 		public static void OutputXLSX(List<DesignatorGroup> groups, HeaderBlock header, string file, string template)
