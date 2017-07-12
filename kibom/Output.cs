@@ -12,6 +12,7 @@ using System.IO;
 using System.Drawing;
 using OfficeOpenXml;
 using OfficeOpenXml.Style;
+using Keio.Utils;
 
 namespace kibom
 {
@@ -254,6 +255,153 @@ namespace kibom
 										"\t" + c.part_no +
 										"\t" + footprint +
 										"\t" + c.precision);
+					}
+					sw.WriteLine();
+				}
+			}
+		}
+
+		private static void PrettyMeasureWidths(List<DesignatorGroup> groups,
+												out int count_width,
+												out int reference_width,
+												out int value_width,
+												out int footprint_width,
+												out int precision_width)
+		{
+			count_width = "No.".Length;
+			reference_width = "Reference".Length;
+			value_width = "Value".Length;
+			footprint_width = "Footprint".Length;
+			precision_width = "Precision".Length;
+
+			foreach (DesignatorGroup g in groups)
+			{
+				// check for groups that are entire "no part"
+				bool all_no_part = true;
+				foreach (Component c in g.comp_list)
+				{
+					if (!c.no_part)
+						all_no_part = false;
+				}
+				if (all_no_part)
+					continue;
+
+				foreach (Component c in g.comp_list)
+				{
+					count_width = Math.Max(count_width, (c.count + 1).ToString().Length);
+					reference_width = Math.Max(reference_width, c.reference.Length);
+					value_width = Math.Max(value_width, c.value.Length);
+					if (!string.IsNullOrEmpty(c.precision))
+						precision_width = Math.Max(precision_width, c.precision.Length);
+
+					string footprint = c.footprint_normalized;
+					if (footprint == "")
+						footprint = c.footprint;
+					footprint_width = Math.Max(footprint_width, footprint.Length);
+				}
+			}
+
+			count_width = Math.Min(count_width, 10);
+			reference_width = Math.Min(reference_width, 20);
+			value_width = Math.Min(value_width, 30);
+			footprint_width = Math.Min(footprint_width, 30);
+			precision_width = Math.Min(precision_width, 20);
+		}
+
+		public static void OutputPretty(List<DesignatorGroup> groups, HeaderBlock header, string file)
+		{
+			Console.WriteLine("Generating " + file + "...");
+			using (StreamWriter sw = new StreamWriter(file))
+			{
+				int count_width;
+				int reference_width;
+				int value_width;
+				int footprint_width;
+				int precision_width;
+				PrettyMeasureWidths(groups, out count_width, out reference_width, out value_width, out footprint_width, out precision_width);
+
+				sw.WriteLine("Title:      " + header.title);
+				sw.WriteLine("Date:       " + header.date);
+				sw.WriteLine("Source:     " + header.source);
+				sw.WriteLine("Revsision:  " + header.revision);
+				if (header.company != "")
+					sw.WriteLine("Company:    " + header.company);
+				sw.WriteLine("");
+
+				//sw.WriteLine("No.  Designation    Value          Footprint     Precision");
+				sw.Write(TextUtils.FixedLengthString("No.", ' ', count_width) + "  ");
+				sw.Write(TextUtils.FixedLengthString("Reference", ' ', reference_width) + "  ");
+				sw.Write(TextUtils.FixedLengthString("Value", ' ', value_width) + "  ");
+				sw.Write(TextUtils.FixedLengthString("Footprint", ' ', footprint_width) + "  ");
+				sw.WriteLine("Precision");
+				sw.WriteLine("");
+
+				foreach (DesignatorGroup g in groups)
+				{
+					// check for groups that are entire "no part"
+					bool all_no_part = true;
+					foreach (Component c in g.comp_list)
+					{
+						if (!c.no_part)
+							all_no_part = false;
+					}
+					if (all_no_part)
+						continue;
+
+					// header
+					DefaultComp def = Component.FindDefaultComp(g.designator);
+					if (def != null)
+					{
+						sw.Write("[ " + def.long_name);
+						sw.Write(", " + g.comp_list.Count.ToString() + (g.comp_list.Count > 1 ? " values" : " value"));
+						if (def.has_default)
+							sw.Write(", " + def.default_type + " unless otherwise stated");
+						sw.WriteLine(" ]");
+					}
+					else
+						sw.WriteLine("[ " + g.designator + ", " + g.comp_list.Count.ToString() +
+									 (g.comp_list.Count > 1 ? " values" : " value") + " ]");
+
+					sw.WriteLine(new string('-', count_width + 2 + reference_width + 2 + value_width + 2 + footprint_width + 2 + precision_width));
+
+					// component list
+					foreach (Component c in g.comp_list)
+					{
+						if (c.no_part)
+							continue;
+
+						string footprint = c.footprint_normalized;
+						if (footprint == "")
+							footprint = c.footprint;
+						sw.Write(TextUtils.FixedLengthString((c.count + 1).ToString(), ' ', count_width) + "  ");
+
+						string reference = TextUtils.Reformat(c.reference, reference_width);
+						int split_point = reference.IndexOf('\n');
+						if (split_point == -1)
+							sw.Write(TextUtils.FixedLengthString(reference, ' ', reference_width) + "  ");
+						else
+							sw.Write(TextUtils.FixedLengthString(reference.Substring(0, split_point - 1), ' ', reference_width) + "  ");
+						
+						sw.Write(TextUtils.FixedLengthString(c.value, ' ', value_width) + "  ");
+						//sw.Write(TextUtils.FixedLengthString(c.part_no, ' ', 10));
+						sw.Write(TextUtils.FixedLengthString(footprint, ' ', footprint_width) + "  ");
+						if (!string.IsNullOrEmpty(c.precision))
+							sw.Write(TextUtils.FixedLengthString(c.precision, ' ', precision_width));
+						sw.WriteLine();
+
+						if (split_point != -1)	// need to do the rest of the references
+						{
+							string indent = new string(' ', count_width + 2);
+							do
+							{
+								reference = reference.Substring(split_point + 1);
+								split_point = reference.IndexOf('\n');
+								if (split_point == -1)
+									sw.WriteLine(indent + reference.Trim());
+								else
+									sw.WriteLine(indent + reference.Substring(0, split_point - 1).Trim());
+							} while (split_point != -1);
+						}
 					}
 					sw.WriteLine();
 				}

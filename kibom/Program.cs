@@ -59,6 +59,8 @@ namespace kibom
 									assign: (dynamic d) => { poutputs += "d"; }) },
 				{ new CmdArgument("tsv", ArgType.Flag, help: "Generate tab separated value output",
 									assign: (dynamic d) => { poutputs += "t"; }) },
+				{ new CmdArgument("pretty", ArgType.Flag, help: "Generate pretty text output",
+									assign: (dynamic d) => { poutputs += "q"; }) },
 				{ new CmdArgument("pdf", ArgType.Flag, help: "Generate PDF output",
 									assign: (dynamic d) => { poutputs += "p"; }) },
 				{ new CmdArgument("rtf", ArgType.Flag, help: "Generate RTF output",
@@ -125,7 +127,9 @@ namespace kibom
 			{
 				string base_filename = Path.GetFileNameWithoutExtension(path + filename);
 				if (outputs.Contains('t'))
-					Output.OutputTSV(merged_groups, header, path + base_filename + ".txt");
+					Output.OutputTSV(merged_groups, header, path + base_filename + ".tsv.txt");
+				if (outputs.Contains('q'))
+					Output.OutputPretty(merged_groups, header, path + base_filename + ".txt");
 				if (outputs.Contains('x'))
 					Output.OutputXLSX(merged_groups, header, path + base_filename + ".xlsx", template);
 				if (outputs.Contains('p'))
@@ -137,6 +141,8 @@ namespace kibom
 			{
 				if (outputs.Contains('t'))
 					Output.OutputTSV(merged_groups, header, output_filename);
+				if (outputs.Contains('q'))
+					Output.OutputPretty(merged_groups, header, output_filename);
 				if (outputs.Contains('x'))
 					Output.OutputXLSX(merged_groups, header, output_filename, template);
 				if (outputs.Contains('p'))
