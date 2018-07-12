@@ -4,4 +4,5 @@ bom_footprint			substitute footprint name
 precision				e.g. 1%, X5R
 bom_note				text of note
 bom_partno				manufacturer's part number
-bom_no_part				excludes part from BOM if set to "true"
+bom_no_part				excludes part from BOM if set to "true" or "no part"
+bom_no_fit				adds part to no fit list if set to "true" or "no fit"

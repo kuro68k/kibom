@@ -31,3 +31,5 @@ Can be used as a plug-in for Kicad. Creates tab separated (TSV) or PDF/RTF BOMs.
 `Custom_fields.txt` lists custom fields that can be added to components in Kicad, and which will then appear on the BOM.
 
 Tab Separated Value (TSV) output can be copy/pasted into Google Sheets and most other spreadsheet programs. PDF output needs headers and footers adding to it. A notes section at the end would also be a good idea.
+
+For XLSX output a header and footer can be specified. See the examples.

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Drawing;
 using MigraDoc.DocumentObjectModel;
 using MigraDoc.Rendering;
 using MigraDoc.DocumentObjectModel.Tables;
@@ -18,7 +19,7 @@ namespace kibom
 {
 	class Output
 	{
-		public static void OutputXLSX(List<DesignatorGroup> groups, HeaderBlock header, string file, string template)
+		public static void OutputXLSX(string path, List<DesignatorGroup> groups, HeaderBlock header, string file, string template, string footer, bool nfl)
 		{
 			ExcelPackage p = null;
 			ExcelWorksheet ws;
@@ -40,11 +41,11 @@ namespace kibom
 			table_x--;
 			foreach (DesignatorGroup g in groups)
 			{
-				// check for groups that are entire "no part"
+				// check for groups that are entirly "no part" or "no fit"
 				bool all_no_part = true;
 				foreach (Component c in g.comp_list)
 				{
-					if (!c.no_part)
+					if (!c.no_part && !c.no_fit)
 						all_no_part = false;
 				}
 				if (all_no_part)
@@ -64,11 +65,7 @@ namespace kibom
 					ws.Cells[row, table_x + 1].Value = g.designator;
 					ws.Cells[row, table_x + 2].Value = g.comp_list.Count.ToString() + " value(s)";
 				}
-				ws.Cells[row, table_x + 1].Style.Font.Bold = true;
-				r = ws.Cells[row, table_x + 1, row, table_x + 6];
-				r.Style.Fill.PatternType = ExcelFillStyle.Solid;
-				r.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
-				r.Style.Border.BorderAround(ExcelBorderStyle.Thin, System.Drawing.Color.LightGray);
+				XLXSStyleHeader(row, table_x, ref ws);
 				row++;
 
 				// component list
@@ -100,8 +97,127 @@ namespace kibom
 			r.Style.VerticalAlignment = ExcelVerticalAlignment.Top;
 			r.Style.WrapText = true;
 
+			if (nfl)	// no fit part list
+				XLXSNoFitList(ref row, table_x, ref ws, groups);
+
+			XLXSFooter(path, footer, ref ws, ref row);
+
+			// generate output file
 			byte[] bin = p.GetAsByteArray();
 			File.WriteAllBytes(file, bin);
+		}
+
+		// Excel has a limitation where it can't do auto cell sizing with merged cells, so we have to calculate it manually
+		// https://stackoverflow.com/questions/41639278/autofit-row-height-of-merged-cell-in-epplus
+		private static double XLXSMeasureTextHeight(string text, ExcelFont font, double width)
+		{
+			if (string.IsNullOrEmpty(text))
+				return 0.0;
+			var bitmap = new Bitmap(1, 1);
+			var graphics = Graphics.FromImage(bitmap);
+
+			var pixelWidth = Convert.ToInt32(width * 7.5);  // 7.5 pixels per excel column width
+			var drawingFont = new System.Drawing.Font(font.Name, font.Size);
+			var size = graphics.MeasureString(text, drawingFont, pixelWidth);
+
+			// 72 DPI and 96 points per inch.  Excel height in points with max of 409 per Excel requirements.
+			return Math.Min(Convert.ToDouble(size.Height) * 72 / 96, 409);
+		}
+
+		private static void XLXSStyleHeader(int row, int table_x, ref ExcelWorksheet ws)
+		{
+			ExcelRange r;
+			ws.Cells[row, table_x + 1].Style.Font.Bold = true;
+			r = ws.Cells[row, table_x + 1, row, table_x + 6];
+			r.Style.Fill.PatternType = ExcelFillStyle.Solid;
+			r.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
+			r.Style.Border.BorderAround(ExcelBorderStyle.Thin, System.Drawing.Color.LightGray);
+		}
+
+		private static void XLXSNoFitList(ref int row, int table_x, ref ExcelWorksheet ws, List<DesignatorGroup> groups)
+		{
+			row++;
+			// header
+			ws.Cells[row, table_x + 1].Value = "No fit";
+			XLXSStyleHeader(row, table_x, ref ws);
+			row++;
+
+			StringBuilder sb = new StringBuilder();
+			foreach (DesignatorGroup g in groups)
+			{
+				bool no_fit_found = false;
+				bool newline = true;
+				foreach (Component c in g.comp_list)
+				{
+					if (c.no_fit)
+					{
+						no_fit_found = true;
+						if (!newline)
+							sb.Append(", ");
+						newline = false;
+						sb.Append(c.reference);
+					}
+				}
+				if (no_fit_found)
+					sb.Append(Environment.NewLine);
+			}
+
+			string s = sb.ToString();
+			if (string.IsNullOrEmpty(s))
+				s = "None";
+
+			ws.Cells[row, table_x + 1, row, table_x + 6].Merge = true;
+			ws.Cells[row, table_x + 1].Style.WrapText = true;
+			double width = 0;
+			for (int i = table_x + 1; i < table_x + 6; i++)
+				width += ws.Column(i).Width;
+			double height = XLXSMeasureTextHeight(s + Environment.NewLine + ".", ws.Cells[row, table_x + 1].Style.Font, width);
+			ws.Row(row).Height = height;
+			ws.Cells[row, table_x + 1].Value = s;
+		}
+
+		private static void XLXSFooter(string path, string footer, ref ExcelWorksheet ws, ref int row)
+		{
+			// footer
+			if (!string.IsNullOrEmpty(footer))
+			{
+				//ws.Row(row).PageBreak = true;
+				row++;
+
+				ExcelPackage footer_p = null;
+				ExcelWorksheet footer_ws;
+
+				if (!File.Exists(footer))
+				{
+					footer = path + footer;
+					if (!File.Exists(footer))
+						throw new Exception("File not found " + footer);
+				}
+				FileInfo fi = new FileInfo(footer);
+				footer_p = new ExcelPackage(fi);
+				footer_ws = footer_p.Workbook.Worksheets[1];
+
+				int footer_row = 1;
+				int footer_empty_coint = 0;
+				do
+				{
+					bool empty_row = true;
+					for (int x = 1; x < 6; x++)
+					{
+						if (footer_ws.Cells[footer_row, x].Value != null)
+							empty_row = false;
+					}
+					footer_ws.Cells[footer_row, 1, footer_row, 6].Copy(ws.Cells[row, 1, row, 6]);
+					footer_row++;
+					row++;
+
+					if (empty_row)
+						footer_empty_coint++;
+					else
+						footer_empty_coint = 0;
+
+				} while (footer_empty_coint < 2);
+			}
 		}
 
 		private static void XLXSLoadSheet(string template, ref ExcelPackage p, HeaderBlock header, out ExcelWorksheet ws, out int table_x, out int table_y)
@@ -124,6 +240,9 @@ namespace kibom
 					{
 						case "(title)":
 							ws.Cells[y, x].Value = header.title;
+							break;
+						case "(number)":
+							ws.Cells[y, x].Value = header.comment1;
 							break;
 						case "(documentnumber)":
 							ws.Cells[y, x].Value = "not implemented";
@@ -199,8 +318,8 @@ namespace kibom
 			r.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.Black);
 			r.Style.Font.Color.SetColor(System.Drawing.Color.White);
 		}
-		
-		public static void OutputTSV(List<DesignatorGroup> groups, HeaderBlock header, string file)
+
+		public static void OutputTSV(string path, List<DesignatorGroup> groups, HeaderBlock header, string file)
 		{
 			Console.WriteLine("Generating " + file + "...");
 			using (StreamWriter sw = new StreamWriter(file))
@@ -308,7 +427,7 @@ namespace kibom
 			precision_width = Math.Min(precision_width, 20);
 		}
 
-		public static void OutputPretty(List<DesignatorGroup> groups, HeaderBlock header, string file)
+		public static void OutputPretty(string path, List<DesignatorGroup> groups, HeaderBlock header, string file)
 		{
 			Console.WriteLine("Generating " + file + "...");
 			using (StreamWriter sw = new StreamWriter(file))
@@ -408,7 +527,7 @@ namespace kibom
 			}
 		}
 
-		public static void OutputPDF(List<DesignatorGroup> groups, HeaderBlock header, string file, bool rtf = false)
+		public static void OutputPDF(string path, List<DesignatorGroup> groups, HeaderBlock header, string file, bool rtf = false)
 		{
 			Console.WriteLine("Generating " + file + "...");
 

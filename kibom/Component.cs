@@ -39,6 +39,7 @@ namespace kibom
 		public string note = "";
 		public string code;
         public bool no_part = false;
+		public bool no_fit = false;
 
 		static List<DefaultComp> default_list = new List<DefaultComp>();
 

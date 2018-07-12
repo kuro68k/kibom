@@ -28,7 +28,9 @@ namespace kibom
 			string path = "";
 			string outputs = "";
 			string template = "";
-			if (!ParseArgs(args, out filename, out path, out outputs, out output_filename, out template))
+			string footer = "";
+			bool no_fit_list = false;
+			if (!ParseArgs(args, out filename, out path, out outputs, out output_filename, out template, out footer, out no_fit_list))
 				return;
 
 			if (!Footprint.LoadSubsFile(path) ||
@@ -37,22 +39,30 @@ namespace kibom
 
 			XmlDocument doc = new XmlDocument();
 			doc.Load(path + filename);
-			if (ParseKicadXML(doc, path, filename, outputs, output_filename, template))
+			if (ParseKicadXML(doc, path, filename, outputs, output_filename, template, footer, no_fit_list))
 				Console.WriteLine("BOM generated.");
 		}
 
-		static bool ParseArgs(string[] args, out string filename, out string path, out string outputs, out string output_filename, out string template)
+		static bool ParseArgs(string[] args,
+							  out string filename, out string path,
+							  out string outputs, out string output_filename,
+							  out string template, out string footer,
+							  out bool no_fit_list)
 		{
 			filename = "";
 			path = "";
 			outputs = "";
 			output_filename = "";
 			template = "";
+			footer = "";
+			no_fit_list = false;
 
 			string poutputs = string.Empty;
 			string ptemplate = string.Empty;
+			string pfooter = string.Empty;
 			string pfilename = string.Empty;
 			string poutput_filename = string.Empty;
+			bool pnfl = false;
 
 			CmdArgs argProcessor = new CmdArgs() {
 				{ new CmdArgument("debug", ArgType.Flag, help: "Generate debug output",
@@ -69,6 +79,10 @@ namespace kibom
 									assign: (dynamic d) => { poutputs += "x"; }) },
 				{ new CmdArgument("t,template", ArgType.String, help: "Template file for XLSX output",
 									assign: (dynamic d) => { ptemplate = (string)d; }) },
+				{ new CmdArgument("f,footer", ArgType.String, help: "Footer file for XLSX output",
+									assign: (dynamic d) => { pfooter = (string)d; }) },
+				{ new CmdArgument("nfl,no-fit-list", ArgType.Flag, help: "Add a list of no-fit parts",
+									assign: (dynamic d) => { pnfl = (bool)d; }) },
 				{ new CmdArgument("", ArgType.String, anonymous: true, required: true, parameter_help: "bom.xml",
 									assign: (dynamic d) => { pfilename = (string)d; }) },
 				{ new CmdArgument("", ArgType.String, anonymous: true, parameter_help: "output file",
@@ -86,6 +100,8 @@ namespace kibom
 			output_filename = poutput_filename;
 			outputs = poutputs;
 			template = ptemplate;
+			footer = pfooter;
+			no_fit_list = pnfl;
 
 			if (!File.Exists(filename))
 			{
@@ -100,7 +116,7 @@ namespace kibom
 			return true;
 		}
 
-		static bool ParseKicadXML(XmlDocument doc, string path, string filename, string outputs, string output_filename, string template)
+		static bool ParseKicadXML(XmlDocument doc, string path, string filename, string outputs, string output_filename, string template, string footer, bool nfl)
 		{
 			HeaderBlock header = new HeaderBlock();
 			if (!header.ParseHeader(doc))
@@ -127,28 +143,28 @@ namespace kibom
 			{
 				string base_filename = Path.GetFileNameWithoutExtension(path + filename);
 				if (outputs.Contains('t'))
-					Output.OutputTSV(merged_groups, header, path + base_filename + ".tsv.txt");
+					Output.OutputTSV(path, merged_groups, header, path + base_filename + ".tsv.txt");
 				if (outputs.Contains('q'))
-					Output.OutputPretty(merged_groups, header, path + base_filename + ".txt");
+					Output.OutputPretty(path, merged_groups, header, path + base_filename + ".txt");
 				if (outputs.Contains('x'))
-					Output.OutputXLSX(merged_groups, header, path + base_filename + ".xlsx", template);
+					Output.OutputXLSX(path, merged_groups, header, path + base_filename + ".xlsx", template, footer, nfl);
 				if (outputs.Contains('p'))
-					Output.OutputPDF(merged_groups, header, path + base_filename + ".pdf");
+					Output.OutputPDF(path, merged_groups, header, path + base_filename + ".pdf");
 				if (outputs.Contains('r'))
-					Output.OutputPDF(merged_groups, header, path + base_filename + ".rtf", true);
+					Output.OutputPDF(path, merged_groups, header, path + base_filename + ".rtf", true);
 			}
 			else
 			{
 				if (outputs.Contains('t'))
-					Output.OutputTSV(merged_groups, header, output_filename);
+					Output.OutputTSV(path, merged_groups, header, output_filename);
 				if (outputs.Contains('q'))
-					Output.OutputPretty(merged_groups, header, output_filename);
+					Output.OutputPretty(path, merged_groups, header, output_filename);
 				if (outputs.Contains('x'))
-					Output.OutputXLSX(merged_groups, header, output_filename, template);
+					Output.OutputXLSX(path, merged_groups, header, output_filename, template, footer, nfl);
 				if (outputs.Contains('p'))
-					Output.OutputPDF(merged_groups, header, output_filename);
+					Output.OutputPDF(path, merged_groups, header, output_filename);
 				if (outputs.Contains('r'))
-					Output.OutputPDF(merged_groups, header, output_filename, true);
+					Output.OutputPDF(path, merged_groups, header, output_filename, true);
 			}
 
 			// debug output
@@ -228,8 +244,15 @@ namespace kibom
 							break;
 
 							case "bom_no_part":
-							if (field.InnerText.ToLower() == "true")
+							if ((field.InnerText.ToLower() == "true") ||
+								(field.InnerText.ToLower() == "no part"))
 								comp.no_part = true;
+							break;
+
+							case "bom_no_fit":
+							if ((field.InnerText.ToLower() == "true") ||
+								(field.InnerText.ToLower() == "no fit"))
+								comp.no_fit = true;
 							break;
 						}
 					}

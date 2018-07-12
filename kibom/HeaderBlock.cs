@@ -15,7 +15,8 @@ namespace kibom
 		public string company;
 		public string revision;
 		public string source;
-
+		public string comment1;
+		
 		public bool ParseHeader(XmlDocument doc)
 		{
 			try
@@ -29,6 +30,12 @@ namespace kibom
 				company = title_block.SelectSingleNode("company").InnerText;
 				revision = title_block.SelectSingleNode("rev").InnerText;
 				source = title_block.SelectSingleNode("source").InnerText;
+				var comment_list = title_block.SelectNodes("comment");
+				foreach (XmlNode node in comment_list)
+				{
+					if (node.Attributes["number"].InnerText == "1")
+						comment1 = node.Attributes["value"].InnerText;
+				}
 			}
 			catch
 			{
