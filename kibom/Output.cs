@@ -173,6 +173,7 @@ namespace kibom
 				width += ws.Column(i).Width;
 			double height = XLXSMeasureTextHeight(s + Environment.NewLine + ".", ws.Cells[row, table_x + 1].Style.Font, width);
 			ws.Row(row).Height = height;
+			ws.Cells[row, table_x + 1].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
 			ws.Cells[row, table_x + 1].Value = s;
 		}
 
