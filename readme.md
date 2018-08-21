@@ -33,3 +33,39 @@ Can be used as a plug-in for Kicad. Creates tab separated (TSV) or PDF/RTF BOMs.
 Tab Separated Value (TSV) output can be copy/pasted into Google Sheets and most other spreadsheet programs. PDF output needs headers and footers adding to it. A notes section at the end would also be a good idea.
 
 For XLSX output a header and footer can be specified. See the examples.
+
+### Usage ###
+
+Open the BOM window in Kicad and create a new plugin. For the command line enter:
+
+`"<path to kibom>" "%I" "%O.BOM.txt" <output type>`
+
+For example, to produce a text file you might use:
+
+`"C:\Kibom\kibom.exe" "%I" "%O.BOM.txt" -pretty`
+
+Which will generate `<project name>.BOM.txt` in the Kicad project directory. For Excel output with a template/footer you need to specify the template/footer location:
+
+`"C:\Kibom\kibom.exe" "%I" "%O.BOM.xlsx" -xlsx -t "C:\Kibom\template.xlsx" -f "bom_footer.xlsx" -nfl`
+
+Typically the template is generic (e.g. for your company) and the footer is unique to each project, containing notes and the like.
+
+### Command line arguments ###
+
+`-debug` Generate debug output
+
+`-tsv` Generate tab separated value output
+
+`-pretty` Generate pretty formatted text output
+
+`-pdf` Generate PDF output
+
+`-rtf` Generate RTF output (for LibreOffice/Word etc.)
+
+`-xlsx` Generate Excel output
+
+`-template,-t` Set the template file for Excel output
+
+`-footer,-f` Set the footer file for Excel output
+
+`-no-fit-list,-nfl` Generate a list of no-fit components at the end of the BOM
