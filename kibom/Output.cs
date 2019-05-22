@@ -528,21 +528,23 @@ namespace kibom
 			}
 		}
 
-		public static void OutputPDF(string path, List<DesignatorGroup> groups, HeaderBlock header, string file, bool rtf = false)
+        public static void OutputPDF(string path, List<DesignatorGroup> groups, HeaderBlock header, string file, bool rtf = false)
 		{
 			Console.WriteLine("Generating " + file + "...");
 
 			// document setup
 			var doc = new Document();
 			doc.DefaultPageSetup.PageFormat = PageFormat.A4;
-			doc.DefaultPageSetup.Orientation = Orientation.Landscape;
-			doc.DefaultPageSetup.TopMargin = "1.5cm";
+            //doc.DefaultPageSetup.Orientation = Orientation.Landscape;
+            doc.DefaultPageSetup.Orientation = Orientation.Portrait;
+            doc.DefaultPageSetup.TopMargin = "1.5cm";
 			doc.DefaultPageSetup.BottomMargin = "1.5cm";
 			doc.DefaultPageSetup.LeftMargin = "1.5cm";
 			doc.DefaultPageSetup.RightMargin = "1.5cm";
 			doc.Styles["Normal"].Font.Name = "Arial";
+            doc.Styles["Normal"].Font.Size = 8;
 
-			var footer = new Paragraph();
+            var footer = new Paragraph();
 			footer.AddTab();
 			footer.AddPageField();
 			footer.AddText(" of ");
@@ -574,7 +576,7 @@ namespace kibom
 				// group header row
 				var row = table.AddRow();
 				row.Shading.Color = Colors.LightGray;
-				row.Cells[0].MergeRight = 6;
+				row.Cells[0].MergeRight = /*6*/4;
 				row.Cells[0].Format.Alignment = ParagraphAlignment.Left;
 
 				DefaultComp def = Component.FindDefaultComp(g.designator);
@@ -597,8 +599,8 @@ namespace kibom
 						continue;
 
 					row = table.AddRow();
-					row.Cells[0].AddParagraph(i.ToString());
-					row.Cells[1].AddParagraph(c.count.ToString());
+					row.Cells[0].AddParagraph(i++.ToString());
+					row.Cells[1].AddParagraph((c.count + 1).ToString());
 					row.Cells[2].AddParagraph(c.reference);
 					row.Cells[3].AddParagraph(c.value);
 
@@ -609,10 +611,10 @@ namespace kibom
 						temp += ", " + c.precision;
 					row.Cells[4].AddParagraph(temp);
 					//row.Cells[4].AddParagraph(c.footprint_normalized);
-
+/* Roby
 					row.Cells[5].AddParagraph(c.part_no);
 					row.Cells[6].AddParagraph(c.note);
-				}
+*/				}
 			}
 
 			// generate PDF file
@@ -685,17 +687,17 @@ namespace kibom
 			col.Format.Alignment = ParagraphAlignment.Center;
 			col = table.AddColumn("3.5cm");	// reference
 			col.Format.Alignment = ParagraphAlignment.Left;
-			col = table.AddColumn("4.5cm");	// value
+			col = table.AddColumn("5.0cm");	// value
 			col.Format.Alignment = ParagraphAlignment.Left;
-			col = table.AddColumn("4.5cm");	// type
+			col = table.AddColumn("6.5cm");	// type was 4,5
 			col.Format.Alignment = ParagraphAlignment.Left;
 			//col = table.AddColumn("2.5cm");	// mechanical/size
 			//col.Format.Alignment = ParagraphAlignment.Left;
-			col = table.AddColumn("5.5cm");	// manufacturer part number
+/*			col = table.AddColumn("5.5cm");	// manufacturer part number
 			col.Format.Alignment = ParagraphAlignment.Left;
 			col = table.AddColumn("6cm");	// notes
 			col.Format.Alignment = ParagraphAlignment.Left;
-
+*/
 			var row = table.AddRow();
 			row.HeadingFormat = true;
 			row.Format.Alignment = ParagraphAlignment.Center;
@@ -705,11 +707,11 @@ namespace kibom
 			row.Cells[1].AddParagraph("Qty.");
 			row.Cells[2].AddParagraph("Reference");
 			row.Cells[3].AddParagraph("Value");
-			row.Cells[4].AddParagraph("Type");
+			row.Cells[4].AddParagraph("Type/Footprint");
 			//row.Cells[5].AddParagraph("Size");
-			row.Cells[5].AddParagraph("Manufacturer Part No.");
+/*			row.Cells[5].AddParagraph("Manufacturer Part No.");
 			row.Cells[6].AddParagraph("Notes");
-
+*/
 			return table;
 		}
 
