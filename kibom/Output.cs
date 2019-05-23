@@ -597,8 +597,8 @@ namespace kibom
 						continue;
 
 					row = table.AddRow();
-					row.Cells[0].AddParagraph(i.ToString());
-					row.Cells[1].AddParagraph(c.count.ToString());
+					row.Cells[0].AddParagraph(i++.ToString());
+					row.Cells[1].AddParagraph((c.count + 1).ToString());
 					row.Cells[2].AddParagraph(c.reference);
 					row.Cells[3].AddParagraph(c.value);
 
