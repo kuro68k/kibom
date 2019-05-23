@@ -29,20 +29,19 @@ namespace kibom
 			string outputs = "";
 			string template = "";
 			string footer = "";
-			string path_txt = "";
-			bool no_fit_list = false;
+            string path_txt = "";
+            bool no_fit_list = false;
 			if (!ParseArgs(args, out filename, out path, out outputs, out output_filename, out template, out footer, out path_txt, out no_fit_list))
 				return;
 
-			if (string.IsNullOrEmpty(path_txt)) path_txt = path;
-			//Console.WriteLine(path_txt);
-			if (!Footprint.LoadSubsFile(path_txt /*path*/ /*"./bin/scripting/plugins/kibom/"*/) ||
-				!Component.LoadDefaultsFile(path_txt /*path*/ /*"./bin/scripting/plugins/kibom/"*/))
+            if (string.IsNullOrEmpty(path_txt)) path_txt = path;
+            if (!Footprint.LoadSubsFile(path_txt) ||
+				!Component.LoadDefaultsFile(path_txt))
 				return;
 
 			XmlDocument doc = new XmlDocument();
 			doc.Load(path + filename);
-			if (ParseKicadXML(doc, path, filename, outputs, output_filename, template, footer, path_txt, no_fit_list))
+			if (ParseKicadXML(doc, path, filename, outputs, output_filename, template, footer, no_fit_list))
 				Console.WriteLine("BOM generated.");
 		}
 
@@ -50,8 +49,8 @@ namespace kibom
 							  out string filename, out string path,
 							  out string outputs, out string output_filename,
 							  out string template, out string footer,
-							  out string path_txt,
-							  out bool no_fit_list)
+                              out string path_txt,
+                              out bool no_fit_list)
 		{
 			filename = "";
 			path = "";
@@ -59,14 +58,14 @@ namespace kibom
 			output_filename = "";
 			template = "";
 			footer = "";
-			path_txt = "";
-			no_fit_list = false;
+            path_txt = "";
+            no_fit_list = false;
 
 			string poutputs = string.Empty;
 			string ptemplate = string.Empty;
 			string pfooter = string.Empty;
-			string ppath_txt = string.Empty;
-			string pfilename = string.Empty;
+            string ppath_txt = string.Empty;
+            string pfilename = string.Empty;
 			string poutput_filename = string.Empty;
 			bool pnfl = false;
 
@@ -87,9 +86,9 @@ namespace kibom
 									assign: (dynamic d) => { ptemplate = (string)d; }) },
 				{ new CmdArgument("f,footer", ArgType.String, help: "Footer file for XLSX output",
 									assign: (dynamic d) => { pfooter = (string)d; }) },
-				{ new CmdArgument("path_txt", ArgType.String, help: "Path for bom_default.txt and bom_subs.txt",
-									assign: (dynamic d) => { ppath_txt = (string)d; }) },
-				{ new CmdArgument("nfl,no-fit-list", ArgType.Flag, help: "Add a list of no-fit parts",
+                { new CmdArgument("path_txt", ArgType.String, help: "Path for bom_default.txt and bom_subs.txt",
+                                    assign: (dynamic d) => { ppath_txt = (string)d; }) },
+                { new CmdArgument("nfl,no-fit-list", ArgType.Flag, help: "Add a list of no-fit parts",
 									assign: (dynamic d) => { pnfl = (bool)d; }) },
 				{ new CmdArgument("", ArgType.String, anonymous: true, required: true, parameter_help: "bom.xml",
 									assign: (dynamic d) => { pfilename = (string)d; }) },
@@ -109,8 +108,8 @@ namespace kibom
 			outputs = poutputs;
 			template = ptemplate;
 			footer = pfooter;
-			path_txt = ppath_txt;
-			no_fit_list = pnfl;
+            path_txt = ppath_txt;
+            no_fit_list = pnfl;
 
 			if (!File.Exists(filename))
 			{
@@ -125,7 +124,7 @@ namespace kibom
 			return true;
 		}
 
-		static bool ParseKicadXML(XmlDocument doc, string path, string filename, string outputs, string output_filename, string template, string footer, string path_txt, bool nfl)
+		static bool ParseKicadXML(XmlDocument doc, string path, string filename, string outputs, string output_filename, string template, string footer, bool nfl)
 		{
 			HeaderBlock header = new HeaderBlock();
 			if (!header.ParseHeader(doc))
@@ -216,8 +215,8 @@ namespace kibom
 				comp.footprint = node.SelectSingleNode("footprint").InnerText;
 				
 				// normalized footprint
-				comp.footprint_normalized = Footprint.substitute(comp.footprint, /*true*/false, true);   //remove_unknown, strip_underscore
-                if (comp.footprint_normalized == "no part")
+				comp.footprint_normalized = Footprint.substitute(comp.footprint, true, true);
+				if (comp.footprint_normalized == "no part")
 					comp.no_part = true;
 				if (comp.footprint.Contains(':'))	// contrains library name
 					comp.footprint = comp.footprint.Substring(comp.footprint.IndexOf(':') + 1);
