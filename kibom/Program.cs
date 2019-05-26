@@ -105,7 +105,7 @@ namespace kibom
 
 			if (!File.Exists(filename))
 			{
-				Console.WriteLine("File not found.");
+				Console.WriteLine("File not found: " + filename);
 				return false;
 			}
 			path = Path.GetDirectoryName(Path.GetFullPath(filename));
