@@ -200,19 +200,12 @@ namespace kibom
 			XmlNodeList comp_nodes = components_node.SelectNodes("comp");
 			foreach (XmlNode node in comp_nodes)
 			{
-				var comp = new Component();
-				comp.reference = node.Attributes["ref"].Value;
-				comp.designator = comp.reference.Substring(0, comp.reference.IndexOfAny("0123456789".ToCharArray()));
-				comp.value = node.SelectSingleNode("value").InnerText;
-				comp.numeric_value = Component.ValueToNumeric(comp.value);
-				comp.footprint = node.SelectSingleNode("footprint").InnerText;
-				
-				// normalized footprint
-				comp.footprint_normalized = Footprint.substitute(comp.footprint, true, true);
-				if (comp.footprint_normalized == "no part")
-					comp.no_part = true;
-				if (comp.footprint.Contains(':'))	// contrains library name
-					comp.footprint = comp.footprint.Substring(comp.footprint.IndexOf(':') + 1);
+				XmlNode footprintNode = node.SelectSingleNode("footprint");
+				var comp = new Component(
+					node.Attributes["ref"].Value,
+					node.SelectSingleNode ("value").InnerText,
+		    			(footprintNode != null) ? footprintNode.InnerText : null
+				);
 				
 				// custom BOM fields
 				XmlNode fields = node.SelectSingleNode("fields");
