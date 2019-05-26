@@ -108,10 +108,11 @@ namespace kibom
 				Console.WriteLine("File not found: " + filename);
 				return false;
 			}
-			path = Path.GetDirectoryName(Path.GetFullPath(filename));
-			if (!path.EndsWith("\\"))
-				path += "\\";
-			filename = Path.GetFileName(filename);
+			String pathSep = Char.ToString (Path.DirectorySeparatorChar);
+			path = Path.GetDirectoryName (Path.GetFullPath (filename));
+			if (!path.EndsWith (pathSep, StringComparison.Ordinal))
+				path += pathSep;
+			filename = Path.GetFileName (filename);
 
 			return true;
 		}
