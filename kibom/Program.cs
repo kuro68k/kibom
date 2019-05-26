@@ -20,8 +20,8 @@ namespace kibom
 	{
 		static void Main(string[] args)
 		{
-            Version v = Assembly.GetExecutingAssembly().GetName().Version;
-            Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, @"Kibom {0}.{1} (build {2}.{3})", v.Major, v.Minor, v.Build, v.Revision));
+			Version v = Assembly.GetExecutingAssembly().GetName().Version;
+			Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, @"Kibom {0}.{1} (build {2}.{3})", v.Major, v.Minor, v.Build, v.Revision));
 
 			string filename = "";
 			string output_filename = "";
