@@ -43,6 +43,31 @@ namespace kibom
 
 		static List<DefaultComp> default_list = new List<DefaultComp>();
 
+		public Component(string reference, string value, string footprint)
+		{
+			this.reference = reference;
+			this.value = value;
+			this.designator = this.reference.Substring (0, this.reference.IndexOfAny ("0123456789".ToCharArray ()));
+			this.numeric_value = Component.ValueToNumeric(this.value);
+
+			// normalized footprint
+	    		if (footprint == null) {
+				Console.Error.WriteLine("No footprint defined on node '" + this.reference + "." + this.value);
+				this.footprint = "no part";
+				this.footprint_normalized = "no part";
+			}
+			else {
+				this.footprint_normalized = Footprint.substitute(footprint, true, true);
+				if (footprint.Contains (':')) {     // contrains library name
+					this.footprint = footprint.Substring (footprint.IndexOf (':') + 1);
+				} 
+				else {
+					this.footprint = footprint;
+				}
+			}
+			this.no_part = (this.footprint_normalized == "no part");
+		}
+
 		static public DefaultComp FindDefaultComp(string designator)
 		{
 			foreach (DefaultComp d in default_list)
